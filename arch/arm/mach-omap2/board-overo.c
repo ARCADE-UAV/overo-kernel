@@ -420,10 +420,18 @@ static struct regulator_init_data overo_vmmc1 = {
 	.consumer_supplies	= overo_vmmc1_supply,
 };
 
+
+static struct twl4030_madc_platform_data overo_madc_data = {
+	.irq_line	= 1,
+};
+
+
 static struct twl4030_platform_data overo_twldata = {
 	.gpio		= &overo_gpio_data,
+	.madc		= &overo_madc_data,
 	.vmmc1		= &overo_vmmc1,
 };
+
 
 static int __init overo_i2c_init(void)
 {
@@ -488,6 +496,24 @@ static struct regulator_consumer_supply dummy_supplies[] = {
 	REGULATOR_SUPPLY("vdd33a", "smsc911x.1"),
 };
 
+static struct omap_musb_board_data musb_board_data = {
+		.interface_type         = MUSB_INTERFACE_ULPI,
+		.mode                   = MUSB_HOST, /* change to MUSB_OTG when working */
+		.power                  = 100,
+}; 
+
+
+static struct platform_device overo_madc_device = {
+	.name	= "twl4030_madc_hwmon",
+	.id	= -1,
+};
+
+static void __init overo_init_madc(void)
+{
+	platform_device_register(&overo_madc_device);
+}
+
+
 static void __init overo_init(void)
 {
 	int ret;
@@ -502,13 +528,14 @@ static void __init overo_init(void)
 				  mt46h32m32lf6_sdrc_params);
 	omap_nand_flash_init(0, overo_nand_partitions,
 			     ARRAY_SIZE(overo_nand_partitions));
-	usb_musb_init(NULL);
+	usb_musb_init(&musb_board_data);
 	usbhs_init(&usbhs_bdata);
 	overo_spi_init();
 	overo_init_smsc911x();
 	overo_display_init();
 	overo_init_led();
 	overo_init_keys();
+	overo_init_madc();
 
 	/* Ensure SDRC pins are mux'd for self-refresh */
 	omap_mux_init_signal("sdrc_cke0", OMAP_PIN_OUTPUT);
